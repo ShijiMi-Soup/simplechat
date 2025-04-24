@@ -18,7 +18,7 @@ def extract_region_from_arn(arn):
 # グローバル変数としてクライアントを初期化（初期値）
 bedrock_client = None
 
-API_URL = "https://a324-34-169-195-23.ngrok-free.app/"
+API_URL = "https://a324-34-169-195-23.ngrok-free.app/generate"
 
 def lambda_handler(event, context):
     try:
@@ -35,12 +35,19 @@ def lambda_handler(event, context):
         message = body['message']
         conversation_history = body.get('conversationHistory', [])
 
-        data = json.dumps({"message": message}).encode("utf-8")
 
         print("Processing message:", message)
 
         # 会話履歴を使用
         messages = conversation_history.copy()
+
+        data = json.dumps({
+            "prompt": message,
+            "max_new_tokens": 512,
+            "do_sample": True,
+            "temperature": 0.7,
+            "top_p": 0.9
+        }).encode("utf-8")
 
         req = urllib.request.Request(
             url=API_URL,
@@ -52,7 +59,7 @@ def lambda_handler(event, context):
         with urllib.request.urlopen(req) as res:
             response_body = json.loads(res.read())
 
-        assistant_response = response_body["reply"]
+        assistant_response = response_body["generated_text"]
         
         # アシスタントの応答を会話履歴に追加
         messages.append({
