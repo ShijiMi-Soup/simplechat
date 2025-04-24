@@ -18,7 +18,7 @@ def extract_region_from_arn(arn):
 # グローバル変数としてクライアントを初期化（初期値）
 bedrock_client = None
 
-API_URL = ""
+API_URL = "https://a324-34-169-195-23.ngrok-free.app/"
 
 def lambda_handler(event, context):
     try:
