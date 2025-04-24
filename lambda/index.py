@@ -2,23 +2,11 @@
 import json
 import os
 import boto3
-import re  # 正規表現モジュールをインポート
 from botocore.exceptions import ClientError
 import urllib.request
 
-
-# Lambda コンテキストからリージョンを抽出する関数
-def extract_region_from_arn(arn):
-    # ARN 形式: arn:aws:lambda:region:account-id:function:function-name
-    match = re.search('arn:aws:lambda:([^:]+):', arn)
-    if match:
-        return match.group(1)
-    return "us-east-1"  # デフォルト値
-
-# グローバル変数としてクライアントを初期化（初期値）
-bedrock_client = None
-
 API_URL = "https://a324-34-169-195-23.ngrok-free.app/generate"
+N_TURNS = 5
 
 def lambda_handler(event, context):
     try:
@@ -35,14 +23,19 @@ def lambda_handler(event, context):
         message = body['message']
         conversation_history = body.get('conversationHistory', [])
 
-
         print("Processing message:", message)
 
         # 会話履歴を使用
         messages = conversation_history.copy()
 
+        contexts = [msg['content'] for msg in messages[-N_TURNS:]]
+        if len(contexts) > 0:
+            prompt += "Pretend that you knew about the following context: \n" + "\n>>".join(contexts) 
+
+        print("Prompt: ", prompt)
+
         data = json.dumps({
-            "prompt": message,
+            "prompt": prompt,
             "max_new_tokens": 512,
             "do_sample": True,
             "temperature": 0.7,
@@ -61,6 +54,12 @@ def lambda_handler(event, context):
 
         assistant_response = response_body["generated_text"]
         
+        # ユーザーメッセージを追加
+        messages.append({
+            "role": "user",
+            "content": message
+        })
+
         # アシスタントの応答を会話履歴に追加
         messages.append({
             "role": "assistant",
